@@ -1,0 +1,547 @@
+#:import get_color_from_hex kivy.utils.get_color_from_hex
+#:import ew kivy.uix.effectwidget
+#:import bl rpi_backlight
+
+[FileIconEntry@Widget]:
+	locked: False
+	path: ctx.path
+	selected: self.path in ctx.controller().selection
+	size_hint: None, None
+	size: '120dp', '120dp'
+
+	on_touch_down: self.collide_point(*args[1].pos) and ctx.controller().entry_touched(self, args[1])
+	on_touch_up: self.collide_point(*args[1].pos) and ctx.controller().entry_released(self, args[1])
+
+
+	canvas:
+		Color:
+			rgba: 1, 1, 1, 1 if self.selected else 0
+		BorderImage:
+			border: 8, 8, 8, 8
+			pos: root.pos
+			size: root.size
+			source: 'atlas://data/images/defaulttheme/filechooser_selected'
+	Image:
+		size: '64dp', '64dp'
+		source: 'atlas://data/images/defaulttheme/filechooser_%s' % ('folder' if ctx.isdir else 'file')
+		pos: root.x + dp(24), root.y + dp(40)
+	Label:
+		text: ctx.name
+		text_size: (root.width, self.height)
+		halign: 'center'
+		shorten: True
+		size: '120dp', '16dp'
+		pos: root.x, root.y + dp(16)
+
+	Label:
+		text: '{}'.format(ctx.get_nice_size())
+		font_size: '11sp'
+		color: .8, .8, .8, 1
+		size: '120dp', '16sp'
+		pos: root.pos
+		halign: 'center'
+
+<NCButton@Button>:
+	font_size: '25sp'
+	#font_name: '/usr/share/fonts/open-sans/OpenSans-Regular.ttf'
+	#font_name: 'solthinregular'
+	font_name: 'Exo2-SemiBold'
+	valign: 'middle'
+	halign: 'center'
+	
+	color: get_color_from_hex('31302e')
+	disabled_color: get_color_from_hex('666666')
+	background_normal: 'button_up128.png'
+	background_down: 'button_dn128.png'
+	size_hint: None, None
+	size: 128, 128
+
+	on_press:
+		root.center_x += 4
+		root.center_y -= 4
+	on_release:
+		root.center_x -= 4
+		root.center_y += 4
+
+<IconButton@ButtonBehavior+BoxLayout>:
+	orientation: 'vertical'
+	size_hint: None, None
+	height: 116
+	width: 96
+	icon: None
+	desc: ''
+	meta: None
+	text_color: 0,0,0,1
+	icon_size: 96,96
+	selected: 0
+	
+	canvas:
+		Color:
+			rgba: 1, 1, 1, 1 if self.selected else 0
+		BorderImage:
+			border: 8, 8, 8, 8
+			pos: root.pos
+			size: root.size
+			source: 'atlas://data/images/defaulttheme/filechooser_selected'
+
+	on_press:
+		self.center_x += 4
+		self.center_y -= 4
+	on_release:
+		self.center_x -= 4
+		self.center_y += 4
+	
+	Image:
+		size_hint: None, None
+		size: root.icon_size
+		source: root.icon
+		center: root.center
+		#color: 0,0,0,0
+	
+	Label:
+		font_size: '15sp'
+		font_name: 'Exo2-SemiBold'
+		text_size: self.size
+		text: root.desc
+		color: root.text_color
+		halign: 'center'
+
+	
+<MainMenu>:
+	FloatLayout:
+		NCButton:
+			pos: root.width-self.width, 0
+			size_hint: None, None
+			size: 96,96
+			text: 'EXIT'
+			on_press: app.stop()
+			
+		GridLayout:
+			cols: 2
+			spacing: 0
+			padding: 0
+			size_hint: None, None
+			size: 300,300
+			center: root.center_x,root.center_y
+
+			NCButton:
+				text: "LOAD"
+				on_press: 
+					root.manager.transition.direction = 'left'
+					root.manager.current='load'
+
+			NCButton:
+				text: "SEND"
+				disabled: 1
+
+			NCButton:
+				text: "RECEIVE"
+
+			NCButton:
+				text: "SETUP"
+				on_press: 
+					root.manager.transition.direction = 'left'
+					root.manager.current='setup'
+
+<LoadScreen>:
+	GridLayout:
+		cols:3
+		spacing: (10,10)
+		size_hint: 1,1
+		#size: 300,300
+		center: root.center_x,root.center_y
+		
+#		GridLayout:
+#			rows:1
+#			size_hint: .2,1
+			#width: 100
+			
+#			ScrollView:
+#				size_hint: None,None
+#				size: 100, root.height
+#				canvas.before:
+#					Color:
+#						rgba: .9,.9,.9,1
+#					Rectangle:
+#						pos: self.pos
+#						size: self.size
+			
+		BoxLayout:
+			orientation: 'vertical'
+			spacing: (self.height/3)-116
+			padding: (self.width-96)/2, 30
+			size_hint: None, 1
+			#height: self.minimum_height
+			width: 100
+			canvas.before:
+				Color:
+					rgba: .9,.9,.9,1
+				Rectangle:
+					pos: self.pos
+					size: self.size
+			
+			IconButton:
+				desc: 'USB'
+				icon: 'drive-removable-media-usb-pendrive.png'
+				on_press:
+					filelist.rootpath = app.config.get('files','usbmedia')
+					filelist.path = app.config.get('files','usbmedia')
+					filelist._trigger_update()
+			IconButton:
+				desc: 'Network'
+				icon: 'network-workgroup.png'
+			IconButton:
+				desc: 'Dropbox'
+				icon: 'dropbox_glyph_blues.png'
+				
+		FileChooserIconView:
+			id: filelist
+		
+		GridLayout:
+			rows: 2
+			size_hint: .25,1
+			spacing: 0
+			padding: 0 
+			
+			NCButton:
+				text: 'Open'
+				on_release: root.load_file()
+				
+			NCButton:
+				text: 'Cancel'
+				on_release: 
+					root.manager.transition.direction = 'right'
+					root.manager.current='menu'
+		
+<SetupScreen>:
+	FloatLayout:
+		NCButton:
+			pos: root.width-self.width, 0
+			size_hint: None, None
+			size: 96,96
+			text: 'BACK'
+			on_press: 
+				root.manager.transition.direction = 'right'
+				root.manager.current='menu'
+				
+		BoxLayout:
+			size_hint: None, None
+			width: 400
+			orientation: 'vertical'
+			center_x: root.center_x
+			padding: 20
+			
+			Label:
+				font_name: 'Exo2-SemiBold'
+				text: "Brightness"
+				font_size: '25sp'
+
+			BoxLayout:
+				size_hint:1,1
+				orientation: 'horizontal'
+				
+				Image:
+					source: 'brightness_empty.png'
+					size_hint: None, None
+					size: 64,64
+				
+				Slider:
+					min: 64
+					max: 254
+					value: app.config.getint('screen','brightness')
+					on_value: 
+						app.config.set('screen','brightness',str(int(round(self.value))))
+						bl.set_brightness(int(round(self.value)), False)
+					orientation: 'horizontal'
+					width: root.width - 128
+	
+				Image:
+					source: 'brightness_full.png'
+					size_hint: None, None
+					size: 64,64
+
+		BoxLayout:
+			orientation: 'horizontal'
+			center_x: root.center_x
+			center_y: root.center_y
+			size_hint: None, None
+			height: 128
+			width: 384
+			
+			NCButton:
+				text: 'PORT'
+				on_press: 
+					root.manager.transition.direction = 'left'
+					root.manager.current='ports'
+				
+			NCButton:
+				text: 'WIFI'
+				on_press: 
+					root.manager.transition.direction = 'left'
+					root.manager.current='wifi'
+				
+			NCButton:
+				text: 'PREFS'
+				on_press: 
+					root.manager.transition.direction = 'left'
+					root.manager.current='settings'
+			
+<PortScreen>:
+	FloatLayout:
+		NCButton:
+			pos: root.width-self.width, 0
+			size_hint: None, None
+			size: 96,96
+			text: 'BACK'
+			on_press: 
+				root.manager.transition.direction = 'right'
+				root.manager.current='setup'
+	
+		GridLayout:
+			rows:2
+			pos: 0, root.height-self.height
+			size_hint: 1, .2
+			
+			Label:
+				text: 'BAUD'
+			Label:
+				text: 'DATA BITS'
+			Label:
+				text: 'PARITY'
+			Label:
+				text: 'STOP BITS'
+			Spinner:
+				text_autoupdate: True
+				values: app.baudrates
+				text: app.config.get('connection','baud')
+				on_text: app.config.set('connection','baud',self.text)
+			Spinner:
+				text_autoupdate: True
+				values: app.databits
+				text: app.config.get('connection','databits')
+				on_text: app.config.set('connection','databits',self.text)
+			Spinner:
+				text_autoupdate: True
+				values: app.parity
+				text: app.config.get('connection','parity')
+				on_text: app.config.set('connection','parity',self.text)
+			Spinner:
+				text_autoupdate: True
+				values: app.stopbits
+				text: app.config.get('connection','stopbits')
+				on_text: app.config.set('connection','stopbits',self.text)
+			
+		BoxLayout:
+			orientation: 'horizontal'
+			center: root.center
+			id: layout
+			size_hint: None, None
+			width: 384
+			height: 182
+			spacing: 20
+			
+<WifiScreen>:
+	on_enter: self.scan()
+
+	FloatLayout:
+		Label:
+			pos: 0, root.height-self.height
+			size_hint: None, None
+			size: 150,150
+			color: 1,1,1,1
+			halign: 'center'
+			valign: 'middle'
+			markup: True
+			id: essid
+			
+		NCButton:
+			pos: root.width-self.width, 0
+			size_hint: None, None
+			size: 96,96
+			text: 'BACK'
+			on_press: 
+				root.manager.transition.direction = 'right'
+				root.manager.current='setup'
+	
+		NCButton:
+			pos: 0, 0
+			size_hint: None, None
+			size: 96,96
+			text: 'SCAN'
+			on_press: 
+				root.scan()
+	
+		StackLayout:
+			id: layout
+			size_hint: .5,.5
+			center_x: root.center_x
+			center_y: root.center_y
+		
+<PasswordPopup>:
+	size_hint: None, None
+	size: 400,200
+	title: 'Enter Wifi Password'
+	on_open: password.focus = True
+	
+	BoxLayout:
+		orientation: 'vertical'
+		
+		TextInput:
+			id: password
+			multiline: False
+			size_hint: 1,.5
+			
+		BoxLayout:
+			orientation: 'horizontal'
+
+			Button:
+				text: 'Connect'
+				id: ok
+			Button:
+				text: 'Cancel'
+				on_press: root.dismiss()
+				
+				
+<EditScreen>:
+	BoxLayout:
+		orientation: 'horizontal'
+		spacing: 10,0
+		padding: 0
+		size_hint: 1,1
+		center: root.center_x,root.center_y
+	
+		BoxLayout:
+			orientation: 'vertical'
+			size_hint:1,1
+
+#			ScrollView:
+#				pos:0,root.height-self.height
+#				size_hint:1,1
+#				scroll_type:['bars']
+#				bar_width:'25dp'
+#				bar_color: get_color_from_hex('3b9bdd')
+#				bar_inactive_color: get_color_from_hex('296d9a')
+#				id: scroller
+			TextInput:
+				size_hint:1, 1
+				multiline: False
+				#text_size: self.width-10, None
+				#height: max( (len(self.text)+1) * self.line_height, self.parent.height)
+				background_color: 1,1,1,1
+				cursor_color: 0,0,0,.9
+				cursor_width: '20sp'
+				color: 0,0,0,1
+				#halign: 'left'
+				id: code
+				filename: ''
+#					canvas.before:
+#						Color:
+#							rgba: self.background_color
+#						Rectangle:
+#							pos: self.pos
+#							size: self.size
+#						BorderImage:
+#							border: 2,2,2,2
+#							pos: self.pos
+#							size: self.size
+#							source: 'atlas://data/images/defaulttheme/textinput'						
+			Label:
+				size_hint:1,None
+				background_color: 1,1,1,1
+				color: 0,0,0,1
+				max_lines: 1
+				outline_color: 1,0,0,1
+				height: 24
+				id: info
+				canvas.before:
+					Color:
+						rgba: self.background_color
+					Rectangle:
+						pos: self.pos
+						size: self.size
+					BorderImage:
+						border: 2,2,2,2
+						pos: self.pos
+						size: self.size
+						source: 'atlas://data/images/defaulttheme/textinput'
+						
+		
+		BoxLayout:
+			orientation: 'vertical'
+			size_hint: None,1
+			width: 96
+			spacing: 0
+			padding: 0 
+			
+			NCButton:
+				size: 96,96
+				text: 'Save'
+				
+			NCButton:
+				size: 96,96
+				text: 'Save\nAs'
+				
+			NCButton:
+				size: 96,96
+				text: 'Send'
+				
+			NCButton:
+				size: 96,96
+				text: 'DNC'
+				
+			NCButton:
+				size: 96,96
+				text: 'Cancel'
+				valign: 'bottom'
+				on_release: 
+					root.ids.code.text=''
+					root.manager.transition.direction = 'right'
+					root.manager.current='menu'
+		
+<Alert>:
+	size_hint: None, None
+	size: 400,200
+	center: root.center_x, root.center_y
+	title_align: 'center'
+	title_size: '20sp'
+	msg: ''
+	
+	BoxLayout:
+		orientation: 'vertical'
+		
+		Label:
+			text: root.msg
+			halign: 'center'
+			valign: 'middle'
+		Button:
+			text: 'OK'
+			on_press: root.dismiss()
+			
+<LoadingSpinner>:
+	size_hint: None, None
+	size: 128,128
+	center: root.center_x, root.center_y
+	
+	Image:
+		source: 'bluespinner.png'
+		anim_delay: .25
+
+<Message>:
+	size_hint: .1,.1
+	center: root.center_x, root.center_y
+	msg: ''
+	
+	Label:
+		text: root.msg
+		
+<SplashScreen>:
+	FloatLayout:
+		size_hint: 1,1
+		
+		Image:
+			source: 'rpi.png'
+			size_hint: 1,1
+		Label:
+			text: 'NC Helper'
+			font_size: '100sp'
+			color: 1,1,1,1

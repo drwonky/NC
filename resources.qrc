@@ -1,0 +1,17 @@
+<RCC>
+  <qresource prefix="images">
+    <file>wifi.png</file>
+    <file>wifi-lock.png</file>
+    <file>brightness_full.png</file>
+    <file>brightness_empty.png</file>
+    <file>rpi128.png</file>
+    <file>rpi.png</file>
+    <file>usb_serial_icon128.png</file>
+    <file>serial_icon128.png</file>
+    <file>button_up128.png</file>
+    <file>button_dn128.png</file>
+    <file>dropbox_glyph_blues.png</file>
+    <file>drive-removable-media-usb-pendrive.png</file>
+    <file>network-workgroup.png</file>
+  </qresource>
+</RCC>
