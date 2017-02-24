@@ -117,7 +117,11 @@ class WifiScreen(Screen):
             pass
         
     def scan(self):
-        self.aplist = Cell.all(self.wifi_iface)
+        try:
+            self.aplist = Cell.all(self.wifi_iface)
+        except:
+            print('scan exception')
+            return
         
         print ('scan')
         self.ids.layout.clear_widgets()
